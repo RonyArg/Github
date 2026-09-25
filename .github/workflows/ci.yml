@@ -37,17 +37,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          FEATURE_LINE="Añadida feature: ${TARGET_BRANCH}"
+          FEATURE_LINE="Feature added: ${TARGET_BRANCH}"
 
           if ! grep -Fq "$FEATURE_LINE" README.md; then
             printf "\n%s\n" "$FEATURE_LINE" >> README.md
 
             git add README.md
             git commit -m "add feature ${TARGET_BRANCH}"
-
             git push origin "HEAD:${TARGET_BRANCH}"
           else
-            echo "La feature is already in README.md"
+            echo "The feature already exists in README.md"
           fi
 
   validate-dev:
@@ -57,19 +56,13 @@ jobs:
 
     steps:
       - name: Validate DEV_TOKEN
-        shell: bash
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-          LOCAL_DEV_TOKEN: ${{ env.LOCAL_DEV_TOKEN }}
         run: |
-          if [ -z "$LOCAL_DEV_TOKEN" ]; then
-            echo "LOCAL_DEV_TOKEN not set in the environment"
+          if ($env:DEV_TOKEN -eq $env:LOCAL_DEV_TOKEN) {
+            Write-Output "The development token is valid"
+          }
+          else {
+            Write-Output "The development token is invalid"
             exit 1
-          fi
-
-          if [ "$DEV_TOKEN" != "$LOCAL_DEV_TOKEN" ]; then
-            echo "the development token is invalid"
-            exit 1
-          fi
-
-          echo "the development token is valid"
+          }

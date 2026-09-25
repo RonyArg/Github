@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 jobs:
-  update-readme:
+  update-version:
     name: Bump application version
     runs-on: ubuntu-latest
 
@@ -38,7 +38,7 @@ jobs:
           CURRENT_VERSION=$(grep -m1 -oE 'AppVersion-[0-9]+' README.md | grep -oE '[0-9]+$')
 
           if [ -z "$CURRENT_VERSION" ]; then
-            echo "No yet found AppVersion in README.md"
+            echo "AppVersion was not found in README.md"
             exit 1
           fi
 
@@ -54,23 +54,17 @@ jobs:
   validate-prod:
     name: Validate production secret
     runs-on: self-hosted
-    needs: update-readme
+    needs: update-version
 
     steps:
       - name: Validate PROD_TOKEN
-        shell: bash
         env:
           PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
-          LOCAL_PROD_TOKEN: ${{ env.LOCAL_PROD_TOKEN }}
         run: |
-          if [ -z "$LOCAL_PROD_TOKEN" ]; then
-            echo "LOCAL_PROD_TOKEN not set in the environment"
+          if ($env:PROD_TOKEN -eq $env:LOCAL_PROD_TOKEN) {
+            Write-Output "The production token is valid"
+          }
+          else {
+            Write-Output "The production token is invalid"
             exit 1
-          fi
-
-          if [ "$PROD_TOKEN" != "$LOCAL_PROD_TOKEN" ]; then
-            echo "the production token is invalid"
-            exit 1
-          fi
-
-          echo "the production token is valid"
+          }
