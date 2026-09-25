@@ -19,9 +19,32 @@ permissions:
   contents: write
 
 jobs:
+  validate-prod:
+    name: Validate production secret
+    runs-on: self-hosted
+
+    steps:
+      - name: Validate PROD_TOKEN
+        shell: pwsh
+        env:
+          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:LOCAL_PROD_TOKEN)) {
+            Write-Output "LOCAL_PROD_TOKEN not set in the environment"
+            exit 1
+          }
+
+          if ($env:PROD_TOKEN -ne $env:LOCAL_PROD_TOKEN) {
+            Write-Output "the production token is invalid"
+            exit 1
+          }
+
+          Write-Output "the production token is valid"
+
   update-readme:
     name: Bump application version
     runs-on: ubuntu-latest
+    needs: validate-prod
 
     steps:
       - name: Checkout branch
@@ -50,26 +73,3 @@ jobs:
           git add README.md
           git commit -m "bump application version to AppVersion-${NEXT_VERSION}"
           git push origin "HEAD:${{ github.head_ref || github.ref_name }}"
-
-  validate-prod:
-    name: Validate production secret
-    runs-on: self-hosted
-    needs: update-readme
-
-    steps:
-      - name: Validate PROD_TOKEN
-        shell: pwsh
-        env:
-          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:LOCAL_PROD_TOKEN)) {
-            Write-Output "LOCAL_PROD_TOKEN not set in the environment"
-            exit 1
-          }
-
-          if ($env:PROD_TOKEN -ne $env:LOCAL_PROD_TOKEN) {
-            Write-Output "the production token is invalid"
-            exit 1
-          }
-
-          Write-Output "the production token is valid"

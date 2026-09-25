@@ -19,9 +19,32 @@ permissions:
   contents: write
 
 jobs:
+  validate-dev:
+    name: Validate development secret
+    runs-on: self-hosted
+
+    steps:
+      - name: Validate DEV_TOKEN
+        shell: pwsh
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:LOCAL_DEV_TOKEN)) {
+            Write-Output "LOCAL_DEV_TOKEN not set in the environment"
+            exit 1
+          }
+
+          if ($env:DEV_TOKEN -ne $env:LOCAL_DEV_TOKEN) {
+            Write-Output "the development token is invalid"
+            exit 1
+          }
+
+          Write-Output "the development token is valid"
+
   update-readme:
     name: Update README
     runs-on: ubuntu-latest
+    needs: validate-dev
 
     steps:
       - name: Checkout branch
@@ -49,26 +72,3 @@ jobs:
           else
             echo "La feature is already in README.md"
           fi
-
-  validate-dev:
-    name: Validate development secret
-    runs-on: self-hosted
-    needs: update-readme
-
-    steps:
-      - name: Validate DEV_TOKEN
-        shell: pwsh
-        env:
-          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:LOCAL_DEV_TOKEN)) {
-            Write-Output "LOCAL_DEV_TOKEN not set in the environment"
-            exit 1
-          }
-
-          if ($env:DEV_TOKEN -ne $env:LOCAL_DEV_TOKEN) {
-            Write-Output "the development token is invalid"
-            exit 1
-          }
-
-          Write-Output "the development token is valid"
