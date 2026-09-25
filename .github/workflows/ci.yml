@@ -57,19 +57,18 @@ jobs:
 
     steps:
       - name: Validate DEV_TOKEN
-        shell: bash
+        shell: pwsh
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-          LOCAL_DEV_TOKEN: ${{ env.LOCAL_DEV_TOKEN }}
         run: |
-          if [ -z "$LOCAL_DEV_TOKEN" ]; then
-            echo "LOCAL_DEV_TOKEN not set in the environment"
+          if ([string]::IsNullOrWhiteSpace($env:LOCAL_DEV_TOKEN)) {
+            Write-Output "LOCAL_DEV_TOKEN not set in the environment"
             exit 1
-          fi
+          }
 
-          if [ "$DEV_TOKEN" != "$LOCAL_DEV_TOKEN" ]; then
-            echo "the development token is invalid"
+          if ($env:DEV_TOKEN -ne $env:LOCAL_DEV_TOKEN) {
+            Write-Output "the development token is invalid"
             exit 1
-          fi
+          }
 
-          echo "the development token is valid"
+          Write-Output "the development token is valid"

@@ -58,19 +58,18 @@ jobs:
 
     steps:
       - name: Validate PROD_TOKEN
-        shell: bash
+        shell: pwsh
         env:
           PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
-          LOCAL_PROD_TOKEN: ${{ env.LOCAL_PROD_TOKEN }}
         run: |
-          if [ -z "$LOCAL_PROD_TOKEN" ]; then
-            echo "LOCAL_PROD_TOKEN not set in the environment"
+          if ([string]::IsNullOrWhiteSpace($env:LOCAL_PROD_TOKEN)) {
+            Write-Output "LOCAL_PROD_TOKEN not set in the environment"
             exit 1
-          fi
+          }
 
-          if [ "$PROD_TOKEN" != "$LOCAL_PROD_TOKEN" ]; then
-            echo "the production token is invalid"
+          if ($env:PROD_TOKEN -ne $env:LOCAL_PROD_TOKEN) {
+            Write-Output "the production token is invalid"
             exit 1
-          fi
+          }
 
-          echo "the production token is valid"
+          Write-Output "the production token is valid"
