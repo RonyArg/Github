@@ -53,16 +53,24 @@ jobs:
     name: Validate development secret
     runs-on: self-hosted
     needs: update-readme
-
+    # environment: development  # only if DEV_TOKEN is an environment secret
     steps:
       - name: Validate DEV_TOKEN
+        shell: pwsh  # use 'powershell' if only Windows PowerShell 5 is installed
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
         run: |
-          if ($env:DEV_TOKEN -eq $env:LOCAL_DEV_TOKEN) {
-            Write-Output "The development token is valid"
+          if ([string]::IsNullOrEmpty($env:DEV_TOKEN)) {
+            Write-Output "DEV_TOKEN is empty (secret missing or not accessible)"
+            exit 1
           }
-          else {
+          if ([string]::IsNullOrEmpty($env:LOCAL_DEV_TOKEN)) {
+            Write-Output "LOCAL_DEV_TOKEN is not set on the runner"
+            exit 1
+          }
+          if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
+            Write-Output "The development token is valid"
+          } else {
             Write-Output "The development token is invalid"
             exit 1
           }
