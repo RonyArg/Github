@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+  push:
+    branches:
+      - develop
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    name: Update README
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Add feature line to README
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          FEATURE_LINE="Feature added: ${TARGET_BRANCH}"
+
+          if ! grep -Fq "$FEATURE_LINE" README.md; then
+            printf "\n%s\n" "$FEATURE_LINE" >> README.md
+
+            git add README.md
+            git commit -m "add feature ${TARGET_BRANCH}"
+            git push origin "HEAD:${TARGET_BRANCH}"
+          else
+            echo "The feature already exists in README.md"
+          fi
+
+  validate-dev:
+    name: Validate development secret
+    runs-on: self-hosted
+    needs: update-readme
+    # environment: development  # only if DEV_TOKEN is an environment secret
+    steps:
+      - name: Validate DEV_TOKEN
+        shell: pwsh  # use 'powershell' if only Windows PowerShell 5 is installed
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:DEV_TOKEN)) {
+            Write-Output "DEV_TOKEN is empty (secret missing or not accessible)"
+            exit 1
+          }
+          if ([string]::IsNullOrEmpty($env:LOCAL_DEV_TOKEN)) {
+            Write-Output "LOCAL_DEV_TOKEN is not set on the runner"
+            exit 1
+          }
+          if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
+            Write-Output "The development token is valid"
+          } else {
+            Write-Output "The development token is invalid"
+            exit 1
+          }
